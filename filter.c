@@ -86,6 +86,7 @@ static bool PacketIsInbound(FilterConfig* fltCfg, unsigned int srcAddr, unsigned
 IpPktFilter CreateFilter(void)
 {
    // TODO: implement function
+   FilterConfig* fltCfg = malloc(sizeof(FilteeConfig));
 
    return NULL; 
 }
@@ -165,8 +166,27 @@ bool ConfigureFilter(IpPktFilter filter, char* filename)
          fltCfg->localMask = mask;
 
       }
-
-      // TODO: implement remainder of file parsing
+      else if( strcmp(pToken, "BLOCK_INBOUND_TCP_PORT") == 0 )
+      {
+         pToken = strtok(NULL, "\n");
+	 sscanf(pToken, "%u", &temp);
+	 AddBlockedInboundTcpPort(fltCfg, temp);
+      }
+      else if( strcmp(pToken, "BLOCK_PING_REQ") == 0  )
+      {
+	 fltCfg->blockInboundEchoReq = true;
+      }
+      else if( strcmp(pToken, "BLOCK_IP_ADDR") == 0 )
+      {
+  	 ParseRemainderOfStringForIP(ipAddr);
+         temp = ConvertIpUIntOctetsToUInt(ipAddr);
+	 AddBlockedIpAddress(fltCfg, temp);
+      }
+      else
+      {
+	  printf("ERROR, invalid line in config file\n");
+	  return false; 
+      }
   }
 
  
@@ -186,9 +206,35 @@ bool ConfigureFilter(IpPktFilter filter, char* filename)
 /// @return True if the packet is allowed by the filter. False if the packet
 /// is to be blocked
 bool FilterPacket(IpPktFilter filter, unsigned char* pkt)
-{
-   // TODO: implement function
- 
+{  //TODO: find out if IP_PROTOCOL_UDP and ICMP_TYPE_ECHO_REPLY are relevant
+   FilterConfig* fltCfg = (FilteConfig*)filter;
+   
+   unsigned int srcIpAddr = ExtractSrcAddrFromIpHeader(pkt);
+   if( BlockIpAddress(fltCfg, srcIpAddr) ) return false;
+   
+   unsigned int dstIpAddr = ExtractDstAddrFromIpHeader(pkt);
+   if( BlockIpAddress(fltCfg, dstIpAddr) ) return false;
+   
+   // All outbound packets with unblocked IPs are allowed through
+   if( !PacketIsInbound(fltCfg, srcIpAddr, dstIpAddr) ) return true;
+
+   unsigned int IpProtocol = ExtractIpProtocol(pkt);
+   switch(IpProtocol) 
+   {
+      case IP_PROTOCOL_ICMP :
+	 unsigned char icmpType = ExtractIcmpType(pkt);
+	 if( fltCfg->blockedInboundEchoReq && icmpType == ICMP_TYPE_ECHO_REQ ) return false; 
+         break;
+
+      case IP_PROTOCOL_TCP :
+	 unsigned int port = ExtractTcpDstPort(pkt);
+	 if( BlockInboundTcpPort(fltCfg, port) ) return false;
+	 break;
+
+      default :
+	 printf("ERROR, unexpected IpProtocol: %u\n", IpProtocol);
+   }
+
    return true;
 }
 
@@ -199,7 +245,8 @@ bool FilterPacket(IpPktFilter filter, unsigned char* pkt)
 /// @return True if the IP address is to be blocked
 static bool BlockIpAddress(FilterConfig* fltCfg, unsigned int addr)
 {
-   // TODO: implement function
+   for(int i = 0; i < fltCfg->numBlockedIpAddresses; i++)
+	if(fltCfg->blockedIpAddresses[i] == addr) return true;
 
    return false;
 }
@@ -211,7 +258,8 @@ static bool BlockIpAddress(FilterConfig* fltCfg, unsigned int addr)
 /// @return True if the TCP port is to be blocked
 static bool BlockInboundTcpPort(FilterConfig* fltCfg, unsigned int port)
 {
-   // TODO: implement function
+   for(int i = 0; i < fltCfg->numBlockedInboundTcpPorts; i++)
+	   if(fltCfg->blockedInboundTcpPorts[i] == port) return true;
 
    return false;
 }
@@ -225,11 +273,14 @@ static bool BlockInboundTcpPort(FilterConfig* fltCfg, unsigned int port)
 /// @param fltCfg The filter configuration to use
 /// @param srcIpAddr The source IP address of a packet
 /// @param dstIpAddr The destination IP address of a packet
+/// @return True if the packet is inbound
 static bool PacketIsInbound(FilterConfig* fltCfg, unsigned int srcIpAddr, unsigned int dstIpAddr)
 {
-   // TODO: implement function
+   unsigned int localIpAddrMasked = fltCfg->localIpAddr & (fltCfg->localMask);
+   unsigned int dstIpAddrMasked = dstIpAddr & (fltCfg->localMask);
+   unsigned int srcIpAddrMasked = srcIpAddr & (fltCfg->localMask);
 
-   return false;
+   return (dstIpAddrMasked == localIpAddrMasked) && (srcIpAddrMasked != localIpAddrMasked);
 }
 
 
