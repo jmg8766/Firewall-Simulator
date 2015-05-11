@@ -80,6 +80,35 @@ static bool ReadPacket(unsigned char* buf, int bufLength, int* len);
 int main(int argc, char* argv[])
 {
    // TODO: implement function
+   
+   // Argument Validation
+   if(argc <= 1) printf("usage: frewall confgFileName");
+
+   // Create and configure the filter
+   IpPktFilter filter = CreateFilter;
+   if( !ConfigureFilter(filter, argv[1]) ) return EXIT_FAILURE;
+
+   // Starts a second thread to filter packets
+   pthread_t filter;
+   if( pthread_create(&filter, NULL, FilterThread, &filter) )
+   {
+      printf(stderr, "Error creating thread\n"); return EXIT_FAILURE;
+   }
+   
+   // Responds to user input
+   While(true) 
+   {
+	DisplayMenu();
+	scanf("%u", );
+   }
+
+   // Waits for the filter thread to finish
+   if( pthread_join(filter, NULL) ) 
+   {
+      fprintf(stderr, "Error joining thread\n"); return EXIT_FAILURE;
+   }
+
+   DestroyFilter(filter);
 
    return EXIT_SUCCESS;
 }

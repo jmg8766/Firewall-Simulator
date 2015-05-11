@@ -86,7 +86,8 @@ static bool PacketIsInbound(FilterConfig* fltCfg, unsigned int srcAddr, unsigned
 IpPktFilter CreateFilter(void)
 {
    // TODO: implement function
-   FilterConfig* fltCfg = malloc(sizeof(FilteeConfig));
+   FilterConfig* fltCfg = malloc(sizeof(FilterConfig));
+
 
    return NULL; 
 }
@@ -188,7 +189,11 @@ bool ConfigureFilter(IpPktFilter filter, char* filename)
 	  return false; 
       }
   }
-
+	
+   if( fltCfg->localIpAddr == NULL )
+   {
+      printf("Error, confguraton fle must set LOCAL_NET"); return false;
+   }
  
    return true;
 }
