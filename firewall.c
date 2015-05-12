@@ -45,7 +45,6 @@ static FILE* OutPipe = NULL;
 /// Controls the mode of the firewall
 volatile FilterMode Mode = MODE_FILTER;
 
-
 /// The main function that performs the actual packet read, filter, and write.
 /// The return value and parameter must match those expected by pthread_create.
 /// @param args A pointer to a filter
@@ -67,7 +66,7 @@ static bool OpenPipes(void);
 /// @param bufLength The length of the supplied destination buffer
 /// @param len The length of the packet
 /// @return True if successful
-static bool ReadPacket(unsigned char* buf, int bufLength, int* len);
+//static bool ReadPacket(unsigned char* buf, int bufLength, int* len);
 
 
 /// The main function. Creates a filter, configures it, launches the
@@ -83,7 +82,7 @@ int main(int argc, char* argv[])
    if(argc <= 1) printf("usage: frewall confgFileName");
 
    // Create and configure the filter
-   IpPktFilter filter = CreateFilter;
+   IpPktFilter filter = CreateFilter();
    if( !ConfigureFilter(filter, argv[1]) ) return EXIT_FAILURE;
 
    // Starts a second thread to filter packets
@@ -93,7 +92,8 @@ int main(int argc, char* argv[])
    DisplayMenu();
 
    // Responds to user input
-   While(true) 
+   unsigned int userInput;
+   while(true) 
    {
       scanf("%u", &userInput);
 	
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 	    break;
 
 	 default :
-	    // Unrecognized user input
+	    // Unrecognized user input, ignore it
 	    break;
       }
 
@@ -134,7 +134,27 @@ int main(int argc, char* argv[])
 /// @return Always NULL
 static void* FilterThread(void* args)
 {
-   // TODO: implement function
+   if(OpenPipes() == false) return NULL;
+   
+   // loop until EOF or interrupted
+   while(!feof(InPipe))
+   {
+      // Read in the size of the packet
+      int packetLength; fread(&packetLength, sizeof(int), 1, InPipe);
+      
+      // Read the packet
+      unsigned char packet[2048]; fread(packet, sizeof(char), packetLength, InPipe); 
+
+      // If filterPacket returns false, write packet to OutPipe
+      if(!FilterPacket(args, packet)) 
+      {
+	      // Write the size
+	      fwrite(&packetLength, sizeof(int), 1, OutPipe);
+
+	      // Write the packet
+	      fwrite(packet, sizeof(char), packetLength, OutPipe); 
+      }
+   }
 
    return NULL;
 }
@@ -157,7 +177,6 @@ static void DisplayMenu(void)
 /// @return True if successful
 static bool OpenPipes(void)
 {
-
    InPipe = fopen("ToFirewall", "rb");
    if(InPipe == NULL)
    {
@@ -181,10 +200,10 @@ static bool OpenPipes(void)
 /// @param bufLength The length of the supplied destination buffer
 /// @param len The length of the packet
 /// @return True if a packet was successfully read
-static bool ReadPacket(unsigned char* buf, int bufLength, int* len)
-{
+//static bool ReadPacket(unsigned char* buf, int bufLength, int* len)
+//{
    // TODO: implement function
 
-   return false;
-}
+  // return false;
+//}
 
