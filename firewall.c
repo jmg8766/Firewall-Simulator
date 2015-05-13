@@ -45,6 +45,10 @@ static FILE* OutPipe = NULL;
 /// Controls the mode of the firewall
 volatile FilterMode Mode = MODE_FILTER;
 
+
+/// A flag to report the state of the filte thread
+volatile bool threadIsDead = false;
+
 /// The main function that performs the actual packet read, filter, and write.
 /// The return value and parameter must match those expected by pthread_create.
 /// @param args A pointer to a filter
@@ -79,11 +83,15 @@ static bool OpenPipes(void);
 int main(int argc, char* argv[])
 {   
    // Argument Validation
-   if(argc <= 1) printf("usage: firewall confgFileName");
+   if(argc <= 1)
+   { 
+      printf("usage: firewall confgFileName\n");
+      return EXIT_FAILURE;
+   }
 
    // Create and configure the filter
    IpPktFilter filter = CreateFilter(); 
-   ConfigureFilter(filter, argv[1]);
+   if(!ConfigureFilter(filter, argv[1])) return EXIT_FAILURE;
 
    // Starts a second thread to filter packets
    pthread_t filterThread;
@@ -94,6 +102,13 @@ int main(int argc, char* argv[])
    DisplayMenu();
    while(true) 
    {
+      if(threadIsDead)
+      {
+	 pthread_cancel(filterThread);
+         DestroyFilter(filter);
+         return EXIT_SUCCESS;
+      }      
+
       unsigned char userInput;
       while(scanf(" %c", &userInput) != 1);
       
@@ -133,7 +148,11 @@ int main(int argc, char* argv[])
 /// @return Always NULL
 static void* FilterThread(void* args)
 {
-   if(OpenPipes() == false) return NULL;
+   if(OpenPipes() == false) 
+   {
+      threadIsDead = true;
+      return NULL;
+   }
    
    // loop until EOF
    while(!feof(InPipe))
