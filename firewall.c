@@ -13,7 +13,7 @@
 ///
 /// Copyright 2015 Rochester Institute of Technology
 ///
-///
+/// Modified/finished by Justin Gottshall - jmg8766@cs.rit.edu
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,24 +79,28 @@ static bool OpenPipes(void);
 int main(int argc, char* argv[])
 {   
    // Argument Validation
-   if(argc <= 1) printf("usage: frewall confgFileName");
+   if(argc <= 1) printf("usage: firewall confgFileName");
 
    // Create and configure the filter
-   IpPktFilter filter = CreateFilter();
-   if( !ConfigureFilter(filter, argv[1]) ) return EXIT_FAILURE;
+   IpPktFilter filter = CreateFilter(); 
+   ConfigureFilter(filter, argv[1]);
 
    // Starts a second thread to filter packets
    pthread_t filterThread;
-   pthread_create(&filterThread, NULL, FilterThread, &filter);
+   pthread_create(&filterThread, NULL, FilterThread, filter);
    
-   DisplayMenu();
 
    // Responds to user input
-   unsigned int userInput;
+   DisplayMenu();
    while(true) 
    {
-      scanf("%u", &userInput);
-	
+      unsigned int userInput, success = 0;
+      while(success != 1)
+      { 
+         success = scanf("%u", &userInput);
+	 printf("> ");
+      }
+
       switch(userInput)
       {
          case 0 :
@@ -117,11 +121,10 @@ int main(int argc, char* argv[])
 	    break;
 
 	 default :
-	    // Unrecognized user input, ignore it
 	    break;
       }
 
-      printf("\n> ");
+      printf("> ");
    }
 }
 
@@ -136,23 +139,24 @@ static void* FilterThread(void* args)
 {
    if(OpenPipes() == false) return NULL;
    
-   // loop until EOF or interrupted
+   // loop until EOF
    while(!feof(InPipe))
    {
       // Read in the size of the packet
       int packetLength; fread(&packetLength, sizeof(int), 1, InPipe);
       
       // Read the packet
-      unsigned char packet[2048]; fread(packet, sizeof(char), packetLength, InPipe); 
+      unsigned char packet[packetLength]; fread(packet, sizeof(char), packetLength, InPipe); 
 
-      // If filterPacket returns false, write packet to OutPipe
-      if(!FilterPacket(args, packet)) 
+      // If mode is ALLOW_ALL or mode is FILTER and this packet is allowed by the filter
+      if( Mode == MODE_ALLOW_ALL || (Mode == MODE_FILTER && FilterPacket(args, packet)) )
       {
-	      // Write the size
-	      fwrite(&packetLength, sizeof(int), 1, OutPipe);
+         // Write the size
+	 fwrite(&packetLength, sizeof(int), 1, OutPipe);
 
-	      // Write the packet
-	      fwrite(packet, sizeof(char), packetLength, OutPipe); 
+	 // Write the packet
+	 fwrite(packet, sizeof(char), packetLength, OutPipe);
+	 fflush(OutPipe);
       }
    }
 
@@ -193,17 +197,3 @@ static bool OpenPipes(void)
 
    return true;
 }
-
-
-/// Read an entire IP packet from the input pipe
-/// @param buf Destination buffer for storing the packet
-/// @param bufLength The length of the supplied destination buffer
-/// @param len The length of the packet
-/// @return True if a packet was successfully read
-//static bool ReadPacket(unsigned char* buf, int bufLength, int* len)
-//{
-   // TODO: implement function
-
-  // return false;
-//}
-

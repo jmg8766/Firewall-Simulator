@@ -2,7 +2,7 @@
 /// \brief Filters IP packets based on settings in a user supplied
 /// configuration file.
 /// Author: Chris Dickens (RIT CS)
-///
+/// 
 ///
 /// This file contains proprietary information. Distribution is limited
 /// to Rochester Institute of Technology faculty, students currently enrolled
@@ -13,7 +13,7 @@
 ///
 /// Copyright 2015 Rochester Institute of Technology
 ///
-///
+/// Modified/finished by Justin Gottshall - jmg8766@cs.rit.edu
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -260,7 +260,7 @@ static bool BlockIpAddress(FilterConfig* fltCfg, unsigned int addr)
 {
    for(unsigned int i = 0; i < fltCfg->numBlockedIpAddresses; i++)
    {
-      if(fltCfg->blockedIpAddresses[i] == addr) return true;
+      if(addr == fltCfg->blockedIpAddresses[i]) return true;
    }
 
    return false;
@@ -275,7 +275,7 @@ static bool BlockInboundTcpPort(FilterConfig* fltCfg, unsigned int port)
 {
    for(unsigned int i = 0; i < fltCfg->numBlockedInboundTcpPorts; i++)
    {
-      if(fltCfg->blockedInboundTcpPorts[i] == port) return true;
+      if(port == fltCfg->blockedInboundTcpPorts[i]) return true;
    }
 
    return false;
