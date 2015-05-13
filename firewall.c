@@ -94,33 +94,29 @@ int main(int argc, char* argv[])
    DisplayMenu();
    while(true) 
    {
-      unsigned int userInput, success = 0;
-      while(success != 1)
-      { 
-         success = scanf("%u", &userInput);
-	 printf("> ");
-      }
-
-      switch(userInput)
+      unsigned char userInput;
+      while(scanf(" %c", &userInput) != 1);
+      
+      switch((unsigned int)userInput)
       {
-         case 0 :
+         case 48 : // Representing 0
 	    pthread_cancel(filterThread);
 	    DestroyFilter(filter);
             return EXIT_SUCCESS;
 
-	 case 1 :
+	 case 49 : // Representing 1
             Mode = MODE_BLOCK_ALL;
 	    break;
 
-	 case 2 :
+	 case 50 : // Representing 2
             Mode = MODE_ALLOW_ALL;
 	    break;
 
-	 case 3 :
+	 case 51 : // Representing 3
 	    Mode = MODE_FILTER;
 	    break;
 
-	 default :
+	 default : // Unrecognized input is ignored
 	    break;
       }
 
