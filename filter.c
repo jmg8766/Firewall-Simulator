@@ -198,7 +198,7 @@ bool ConfigureFilter(IpPktFilter filter, char* filename)
 	
    if( fltCfg->localIpAddr == 0 )
    {
-      printf("Error, confguraton fle must set LOCAL_NET"); return false;
+      printf("Error, configuration file must set LOCAL_NET"); return false;
    }
  
    return true;
@@ -217,7 +217,7 @@ bool ConfigureFilter(IpPktFilter filter, char* filename)
 /// @return True if the packet is allowed by the filter. False if the packet
 /// is to be blocked
 bool FilterPacket(IpPktFilter filter, unsigned char* pkt)
-{  //TODO: find out if IP_PROTOCOL_UDP and ICMP_TYPE_ECHO_REPLY are relevant
+{
    FilterConfig* fltCfg = (FilterConfig*)filter;
    
    unsigned int srcIpAddr = ExtractSrcAddrFromIpHeader(pkt);

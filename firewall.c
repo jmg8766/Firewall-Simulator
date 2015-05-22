@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
    // Argument Validation
    if(argc <= 1)
    { 
-      printf("usage: firewall confgFileName\n");
+      printf("usage: firewall configFileName\n");
       return EXIT_FAILURE;
    }
 
